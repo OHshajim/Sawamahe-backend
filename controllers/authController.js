@@ -5,7 +5,7 @@ const sendEmail = require("../utils/sendEmail");
 
 // Generate JWT
 const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.AUTH_SECRET, { expiresIn: "7d" });
+    return jwt.sign(id, process.env.AUTH_SECRET, { expiresIn: "7d" });
 };
 
 // Register
@@ -39,7 +39,7 @@ exports.register = async (req, res) => {
 
         res.status(201).json({
             user: userWithoutPass,
-            token: generateToken(user._id),
+            token: generateToken({ id: user._id, email: user.email }),
         });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -51,7 +51,9 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email })
+            .populate([{ path: "picture", strictPopulate: false }])
+            .populate([{ path: "endpoint", strictPopulate: false }]);
         if (!user)
             return res.status(400).json({ message: "Invalid credentials" });
 
@@ -64,7 +66,7 @@ exports.login = async (req, res) => {
 
         res.json({
             user: userWithoutPass,
-            token: generateToken(user._id),
+            token: generateToken({id:user._id, email: user.email}),
         });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -74,7 +76,10 @@ exports.login = async (req, res) => {
 // Profile (protected)
 exports.getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select("-password");
+        const user = await User.findById(req.user.id)
+            .select("-password")
+            .populate([{ path: "picture", strictPopulate: false }])
+            .populate([{ path: "endpoint", strictPopulate: false }]);
         res.json(user);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -92,7 +97,7 @@ exports.forgotPassword = async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
         user.resetPasswordOTP = otp;
-        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+        user.resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 mins
         await user.save();
 
         // Send email
@@ -133,3 +138,27 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+// Change password
+exports.changePassword = async (req, res) => {
+    try {
+        const { email, newPassword, password } = req.body;
+        
+        if(!email || !newPassword || !password) {
+            return res.status(400).json({ message: "Email, current password and new password are required" });
+        }
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const isMatch = password === newPassword;
+        if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+
+        user.password = newPassword;
+        await user.save();
+
+        res.json({ message: "Password changed successfully" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+

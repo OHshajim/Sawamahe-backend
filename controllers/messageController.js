@@ -1,27 +1,58 @@
 const Message = require("../models/Message");
-const Conversation = require("../models/Conversation");
+const xss = require("xss");
+const Rooms = require("../models/Rooms");
+const store = require("../store");
 
 // Send message
-exports.sendMessage = async (req, res) => {
-    try {
-        const { conversationId, content, type = "text" } = req.body;
-        const sender = req.user._id;
+exports.sendMessage = (req, res, next) => {
+  const { roomID, authorID, content, type, fileID } = req.body;
 
-        const message = await Message.create({
-            conversationId,
-            sender,
-            content,
-            type,
+  Message({
+    room: roomID,
+    author: authorID,
+    content: xss(content),
+    type,
+    file: fileID,
+  })
+    .save()
+    .then((message) => {
+      Message.findById(message._id)
+        .populate({
+          path: 'author',
+          select: '-email -password -friends -__v',
+          populate: [
+            {
+              path: 'picture',
+            },
+          ],
+        })
+        .populate([{ path: 'file', strictPopulate: false }])
+        .then((message) => {
+          Rooms.findByIdAndUpdate(roomID, {
+            $set: { lastUpdate: message.date, lastMessage: message._id, lastAuthor: authorID },
+          })
+            .then((room) => {
+              room.people.forEach((person) => {
+                const myUserID = req.user._id;
+                const personUserID = person.toString();
+
+                if (personUserID !== myUserID) {
+                  store.io.to(personUserID).emit('message-in', { status: 200, message, room });
+                }
+              });
+              res.status(200).json({ message, room });
+            })
+            .catch((err) => {
+              return res.status(500).json({ error: true });
+            });
+        })
+        .catch((err) => {
+          return res.status(500).json({ error: true });
         });
-
-        await Conversation.findByIdAndUpdate(conversationId, {
-            lastMessage: message._id,
-        });
-
-        res.json(message);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
+    })
+    .catch((err) => {
+      return res.status(500).json({ error: true });
+    });
 };
 
 // Get messages with pagination
