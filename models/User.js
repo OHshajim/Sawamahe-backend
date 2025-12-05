@@ -15,7 +15,7 @@ const UserSchema = new Schema({
     favorites: [{ type: Schema.ObjectId, ref: "rooms" }],
     tagLine: { type: String, default: "New Clover User" },
     picture: { type: Schema.ObjectId, ref: "images" },
-    lastOnline: Date,
+    lastOnline: { type: Date , default: Date.now },
     balance: {
         minute: { type: Number, default: 0 },
         amount: { type: Number, default: 0 },

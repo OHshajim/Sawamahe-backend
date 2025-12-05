@@ -1,21 +1,18 @@
 const xss = require("xss");
 const Meeting = require("../models/Meeting");
-const Room = require("../models/Rooms"); // ✅ You were using Room but not importing it
+const Room = require("../models/Rooms");
 const User = require("../models/User");
 const store = require("../store");
 
 // ✅ Create a new meeting
 exports.getMeeting = async (req, res) => {
     try {
-        const { title, caller, callee, startedAsCall, callToGroup, group } = req.body;
+        const { caller, callee,type } = req.body;
 
         const meeting = await new Meeting({
-            title: xss(title),
             caller,
             callee,
-            startedAsCall,
-            callToGroup,
-            group,
+            type
         }).save();
 
         return res.status(200).json(meeting);
@@ -26,9 +23,9 @@ exports.getMeeting = async (req, res) => {
 };
 
 // ✅ Send meeting (call) notification to all members in a room
-exports.PostMeeting = async (req, res) => {
+exports.callMeeting = async (req, res) => {
     try {
-        const { roomID, meetingID } = req.body;
+        const { roomID, meetingID, type } = req.body;
 
         if (!roomID || !meetingID) {
             return res
@@ -60,15 +57,15 @@ exports.PostMeeting = async (req, res) => {
 
         room.people.forEach((person) => {
             const personUserID = person._id.toString();
-
             if (personUserID !== myUserID) {
                 store.io.to(personUserID).emit("call", {
                     status: 200,
                     room,
                     meetingID,
                     roomID,
-                    caller: req.user._id,
-                    counterpart: user,
+                    type,
+                    caller: user,
+                    callee : person,
                 });
             }
         });
@@ -78,4 +75,34 @@ exports.PostMeeting = async (req, res) => {
         console.error("Error posting meeting:", err);
         return res.status(500).json({ error: "Failed to post meeting" });
     }
+};
+
+exports.answerMeeting = (req, res) => {
+    let { userID} = req.body;
+    store.io
+        .to(userID)
+        .emit("answer", {
+            status: 200,
+        });
+    store.io
+        .to(req.user._id.toString())
+        .emit("answer", {
+            status: 200,
+        });
+    store.onlineUsers.set(req.user._id.toString(), { id: req.user._id.toString(), status: "busy" });
+    store.onlineUsers.set(userID, { id: userID, status: "busy" });
+    res.status(200).json({ ok: true });
+};
+
+exports.closeMeeting = (req, res) => {
+    let { userID } = req.body;
+    store.io
+        .to(userID)
+        .emit("close",{ status: 200});
+    store.onlineUsers.set(req.user._id.toString(), {
+        id: req.user._id.toString(),
+        status: "online",
+    });
+    store.onlineUsers.set(userID, { id: userID, status: "online" });
+    res.status(200).json({ ok: true });
 };

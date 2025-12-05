@@ -46,7 +46,7 @@ app.use("/api/user", require("./routes/userRoutes"));
 app.use("/api/message", require("./routes/messageRoutes"));
 app.use("/api/rooms", require("./routes/roomRoutes"));
 app.use("/api", require("./routes/uploadRoutes"));
-app.use("/api/livekit", require("./routes/callRoutes"));
+app.use("/api/livekit", require("./routes/livekitRoutes"));
 app.use("/api/meeting", require("./routes/meetingRoutes"));
 app.use("/api", require("./routes/serviceRoutes"));
 

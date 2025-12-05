@@ -89,7 +89,6 @@ exports.getImage = (req, res, next) => {
                     0,
                     location.length - 4
                 )}-${size}.jpg`;
-                console.log(location);
             }
 
             fs.access(location, fs.constants.F_OK, (err) => {

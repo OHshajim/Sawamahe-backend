@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const store = require("./store");
+const User = require("./models/User");
 
 module.exports = () => {
     store.onlineUsers = new Map();
@@ -30,8 +31,25 @@ module.exports = () => {
             socket.join(roomId);
         });
 
+        store.onlineUsers.set(socket, { id: socket.user.id, status: "online" });
+        store.io.emit(
+            "onlineUsers",
+            Array.from(store.onlineUsers.values())
+        );
+
         socket.on("disconnect", () => {
             console.log(`User disconnected: ${socket.user.email}`);
+            User.findOneAndUpdate(
+                { _id: socket.user.id },
+                { $set: { lastOnline: Date.now() } }
+            )
+                .then(() => console.log("last online " + socket.user.id))
+                .catch((err) => console.log(err));
+            store.onlineUsers.delete(socket);
+            store.io.emit(
+                "onlineUsers",
+                Array.from(store.onlineUsers.values())
+            );
         });
     });
 }

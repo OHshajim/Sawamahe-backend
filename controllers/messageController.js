@@ -2,6 +2,7 @@ const Message = require("../models/Message");
 const xss = require("xss");
 const Rooms = require("../models/Rooms");
 const store = require("../store");
+const { Types } = require("mongoose");
 
 // Send message
 exports.sendMessage = (req, res, next) => {
@@ -33,12 +34,8 @@ exports.sendMessage = (req, res, next) => {
           })
             .then((room) => {
               room.people.forEach((person) => {
-                const myUserID = req.user._id;
                 const personUserID = person.toString();
-
-                if (personUserID !== myUserID) {
-                  store.io.to(personUserID).emit('message-in', { status: 200, message, room });
-                }
+                store.io.to(personUserID).emit('message-in', { status: 200, message, room });
               });
               res.status(200).json({ message, room });
             })
@@ -55,35 +52,52 @@ exports.sendMessage = (req, res, next) => {
     });
 };
 
-// Get messages with pagination
-exports.getMessages = async (req, res) => {
+exports.getMoreMessages = async (req, res) => {
+    let { roomID, firstMessageID } = req.body;
+
     try {
-        const { skip = 0, limit = 20 } = req.query;
-        const messages = await Message.find({
-            conversationId: req.params.conversationId,
+        const firstId = new Types.ObjectId(firstMessageID);
+
+        Message.find({
+            room: roomID,
+            _id: { $lt: firstId },
         })
-            .sort({ createdAt: -1 })
-            .skip(parseInt(skip))
-            .limit(parseInt(limit))
-            .populate("sender", "firstName lastName email avatar");
+            .sort({ _id: -1 })
+            .limit(20)
+            .populate({
+                path: "author",
+                strictPopulate: false,
+                select: "-email -password -friends -__v",
+                populate: {
+                    path: "picture",
+                },
+            })
+            .lean()
+            .then((messages) => {
+                messages.reverse();
 
-        res.json(messages.reverse());
+                res.status(200).json({
+                    messages: messages.map((e) => {
+                        if (e.author) {
+                            return e;
+                        } else {
+                            return {
+                                ...e,
+                                author: {
+                                    firstName: "Deleted",
+                                    lastName: "User",
+                                },
+                            };
+                        }
+                    }),
+                });
+            })
+            .catch((err) => {
+                console.error("Error loading old messages:", err);
+                res.status(500).json({ error: err.message });
+            });
     } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
-// Mark message as seen
-exports.markMessageSeen = async (req, res) => {
-    try {
-        const message = await Message.findByIdAndUpdate(
-            req.params.id,
-            { $addToSet: { seenBy: req.user._id } },
-            { new: true }
-        );
-
-        res.json(message);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error("Invalid ID:", err);
+        res.status(400).json({ error: "Invalid message ID" });
     }
 };

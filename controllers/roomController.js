@@ -269,8 +269,6 @@ exports.joinRoom = async (req, res) => {
 
 exports.deleteRoom = async (req, res) => {
     let { roomId:id } = req.body;
-    console.log(req.body);
-    
     try {
         await Rooms.findOneAndDelete({ _id: id });
     } catch (e) {

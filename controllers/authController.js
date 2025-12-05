@@ -11,7 +11,7 @@ const generateToken = (id) => {
 // Register
 exports.register = async (req, res) => {
     try {
-        const { email, password, firstName, lastName } = req.body;
+        const { email, password, firstName, lastName, username } = req.body;
 
         if (!email || !password) {
             return res
@@ -30,6 +30,7 @@ exports.register = async (req, res) => {
             password,
             firstName,
             lastName,
+            username,
             fullName: `${firstName || ""} ${lastName || ""}`.trim(),
         });
 
