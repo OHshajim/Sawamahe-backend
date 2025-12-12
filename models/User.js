@@ -10,7 +10,7 @@ const UserSchema = new Schema({
     fullName: String,
     password: String,
     phone: String,
-    type: String,
+    type: { type: String, default: "user" },
     level: { type: String, default: "standard" },
     favorites: [{ type: Schema.ObjectId, ref: "rooms" }],
     tagLine: { type: String, default: "New Clover User" },
