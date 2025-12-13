@@ -49,6 +49,7 @@ app.use("/api", require("./routes/uploadRoutes"));
 app.use("/api/livekit", require("./routes/livekitRoutes"));
 app.use("/api/meeting", require("./routes/meetingRoutes"));
 app.use("/api", require("./routes/serviceRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
 
 // Health check route
 app.get("/", (req, res) => {
@@ -61,5 +62,4 @@ app.use((err, req, res, next) => {
     res.status(500).json({ message: "Something broke!" });
 });
 
-// app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
