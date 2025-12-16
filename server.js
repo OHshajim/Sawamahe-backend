@@ -48,7 +48,8 @@ app.use("/api/rooms", require("./routes/roomRoutes"));
 app.use("/api", require("./routes/uploadRoutes"));
 app.use("/api/livekit", require("./routes/livekitRoutes"));
 app.use("/api/meeting", require("./routes/meetingRoutes"));
-app.use("/api", require("./routes/serviceRoutes"));
+app.use("/api/website", require("./routes/WebsiteRoutes"));
+app.use("/api/payment", require("./routes/paymentRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 
 // Health check route
@@ -57,7 +58,7 @@ app.get("/", (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
     console.error(err.stack);
     res.status(500).json({ message: "Something broke!" });
 });
