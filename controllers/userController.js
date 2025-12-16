@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const WebsiteInfo = require("../models/WebsiteInfo");
 
 exports.getAllUsers = async (req, res) => {
     try {
@@ -143,6 +144,21 @@ exports.ChangePicture = async (req, res) => {
             message: error.message,
         });
     }
+};
+
+
+exports.getWebData = async (req, res) => {
+    try {
+    const settings = await WebsiteInfo.findOne(); // Only one document expected
+    if (!settings) {
+      return res.status(404).json({ message: 'Website settings not found', success: false });
+    }
+
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching website settings', success: false });
+  }
 };
 
 exports.deleteUser = async (req, res) => {
