@@ -1,5 +1,5 @@
 const express = require("express");
-const { getAllUsers, toggleFavorite, getFavorites, ChangePicture, deleteUser ,qualification } = require("../controllers/userController");
+const { getAllUsers, toggleFavorite, getFavorites, ChangePicture ,qualification } = require("../controllers/userController");
 const {
   getAllUsers,
   toggleFavorite,
@@ -16,7 +16,6 @@ router.post("/favorites", protect, getFavorites);
 router.post("/toggleFavorite", protect, toggleFavorite);
 router.post("/changePicture", protect, ChangePicture);
 router.post("/qualification/set-price/:id", protect, qualification);
-// router.delete("/deleteUser", deleteUser);
 router.get("/webData/get", getWebData);
 
 module.exports = router;

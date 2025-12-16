@@ -161,22 +161,6 @@ exports.getWebData = async (req, res) => {
   }
 };
 
-exports.deleteUser = async (req, res) => {
-    try {
-        const email = req.body.email;
-        console.log(req.body);
-        
-        const user = await User.findOneAndDelete({ email });
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        res.status(200).json({ message: "User deleted successfully" });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};
-
 exports.qualification = async (req, res) => {
     try {
         const { id } = req.params;
